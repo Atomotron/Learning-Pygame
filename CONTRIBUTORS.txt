@@ -4,3 +4,4 @@ Names of contributors:
 -Carl
 -Zhohan
 -Ellen
+-Eckkert
