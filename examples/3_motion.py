@@ -6,7 +6,7 @@ pygame.init()
 screen = pygame.display.set_mode((1024,768))
 
 # Load the image, and "convert" it (optional step) into an optimal format.
-image = pygame.image.load("../img/spriteanim.png").convert_alpha()
+image = pygame.image.load("../img/spriteanim_v2.png").convert_alpha()
 background = pygame.image.load("../img/PyBgrd2_Dunes.png").convert_alpha()
 
 unclick = pygame.mixer.Sound("../sounds/select.ogg")
