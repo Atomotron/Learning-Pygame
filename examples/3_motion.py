@@ -2,11 +2,15 @@
 import pygame,math
 from pygame.locals import *
 
+pygame.init()
 screen = pygame.display.set_mode((1024,768))
 
 # Load the image, and "convert" it (optional step) into an optimal format.
 image = pygame.image.load("../img/spriteanim.png").convert_alpha()
 background = pygame.image.load("../img/PyBgrd2_Dunes.png").convert_alpha()
+
+unclick = pygame.mixer.Sound("../sounds/select.ogg")
+click = pygame.mixer.Sound("../sounds/deselect.ogg")
 
 def erase(rect): # Draw the background over an area to "erase" what's there.
     screen.blit(background,rect.topleft,rect)
@@ -45,6 +49,10 @@ while True:
         elif event.type == KEYDOWN and event.key == K_ESCAPE:
             pygame.quit()
             exit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            click.play()
+        elif event.type == pygame.MOUSEBUTTONUP:
+            unclick.play()
     #Draw a black square to erase if the right button is pressed
     pressed_mouse_buttons = pygame.mouse.get_pressed() # a list of mouse buttons
     if pressed_mouse_buttons[2]: # 2nd element: right button
