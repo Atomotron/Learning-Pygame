@@ -48,6 +48,8 @@ source_rects = {
 }
 
 class World(object):
+    """The world contains all of the sprites, and keeps track of what rectangles
+       need to be painted over by the background to erase old stuff."""
     def __init__(self,background,screen_rect):
         # Foreground drawing
         self.things = []
@@ -61,6 +63,7 @@ class World(object):
             thing.draw(screen)
 
 class Sprite(object):
+    """A drawable thing that sits in the world."""
     def __init__(self,world,spritesheet,source_rect,pos,theta=0):
         self.dirty = True # True if this sprite has changed and must be updated
         self.sprite_dirty = True # True if the cached sprite does not match what the sprite should be
@@ -75,7 +78,7 @@ class Sprite(object):
         if not self.dirty:
             self.world.dirty_rects.append(self.rect)
         self.dirty = True
-    
+
     @property
     def sprite(self):
         if self.sprite_dirty:
@@ -85,7 +88,7 @@ class Sprite(object):
                 1,
             )
             self.sprite_dirty = False
-        return self._sprite        
+        return self._sprite
     @property
     def theta(self):
         return self._theta
@@ -110,7 +113,11 @@ class Sprite(object):
         self.flag_dirty()
         self._pos = x
         self.rect = self.sprite.get_rect().move(int(x[0]),int(x[1]))
+
     def draw(self,screen):
+        # We draw the sprite whether we're flagged as dirty or not,
+        # because we don't know whether or not another drawing operation
+        # messed up our image on the screen by painting over it.
         screen.blit(self.sprite,self.rect.topleft)
 
 if __name__ == "__main__":
