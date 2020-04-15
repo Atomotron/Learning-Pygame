@@ -6,6 +6,13 @@ screen = pygame.display.set_mode((1024,768))
 
 # Load the image, and "convert" it (optional step) into an optimal format.
 image = pygame.image.load("../img/spriteanim.png").convert_alpha()
+background = pygame.image.load("../img/PyBgrd2_Dunes.png").convert_alpha()
+
+def erase(rect): # Draw the background over an area to "erase" what's there.
+    screen.blit(background,rect.topleft,rect)
+erase(
+    screen.get_rect() # A rectangle that covers the whole screen.
+)
 
 # Looping shrug
 shrug_levels = [
@@ -41,9 +48,7 @@ while True:
     #Draw a black square to erase if the right button is pressed
     pressed_mouse_buttons = pygame.mouse.get_pressed() # a list of mouse buttons
     if pressed_mouse_buttons[2]: # 2nd element: right button
-        pygame.draw.rect(
-            screen,  #where to draw it
-            (0,0,0), #black
+        erase(
             pygame.Rect( # The rectangle to draw
                 pygame.mouse.get_pos(), # position
                 shrug_levels[shrug_level].get_size(), # width and height
@@ -55,9 +60,7 @@ while True:
 
     ### Draw a little animation
     # Black rectangle at previous position erases old image of man
-    pygame.draw.rect( 
-        screen,  #where to draw it
-        (0,0,0), #black
+    erase(
         pygame.Rect( # The rectangle to draw
             pos,shrug_levels[shrug_level].get_size(), # width and height
         )
