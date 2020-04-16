@@ -9,6 +9,7 @@ pygame.init()
 screen = pygame.display.set_mode((1024,768))
 
 # Configuration
+BACKSTOP = -50
 PLAYER_SPEED = 1
 WEREWOLF_SPEED = 0.4
 GRAVITY = np.array((0.0,0.01))
@@ -119,7 +120,7 @@ class World(object):
             self,
             spritesheet,
             source_rects['castle'],
-            (-240,650),
+            (48*BACKSTOP,650),
         )
         for i in range(0,100):
             Sprite(
@@ -273,7 +274,7 @@ class Player(Sprite):
             if pressed[K_RIGHT] or pressed[K_d]:
                 self.pos[0] += dt*PLAYER_SPEED
                 self.mirrored = True
-            if pressed[K_LEFT] or pressed[K_a] and self.pos[0] > -10:
+            if pressed[K_LEFT] or pressed[K_a] and self.pos[0] > 48*(BACKSTOP + 5):
                 self.pos[0] -= dt*PLAYER_SPEED
                 self.mirrored = False
         else:
