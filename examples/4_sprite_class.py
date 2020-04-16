@@ -115,12 +115,18 @@ class World(object):
         self.difficulty = difficulty
         self.background = random.choice(self.backgrounds)
         self.camera = np.array((0,0),dtype=np.float_)
+        Sprite(
+            self,
+            spritesheet,
+            source_rects['castle'],
+            (-240,650),
+        )
         for i in range(0,100):
             Sprite(
                 self,
                 spritesheet,
                 source_rects[random.choice(BACKGROUND_SPRITES)],
-                (random.uniform(-10000,10000),random.uniform(550,730)),
+                (random.uniform(-1000,10000),random.uniform(550,730)),
             )
         Player(world,(100,650))
         for i in range(10,difficulty+10):
@@ -267,7 +273,7 @@ class Player(Sprite):
             if pressed[K_RIGHT] or pressed[K_d]:
                 self.pos[0] += dt*PLAYER_SPEED
                 self.mirrored = True
-            if pressed[K_LEFT] or pressed[K_a]:
+            if pressed[K_LEFT] or pressed[K_a] and self.pos[0] > -10:
                 self.pos[0] -= dt*PLAYER_SPEED
                 self.mirrored = False
         else:
@@ -284,7 +290,6 @@ class Player(Sprite):
     def throw_sword_at(self,screen_pos):
         screen_pos = np.array(screen_pos,dtype=np.float_)
         target_pos = self.world.camera + screen_pos
-        
         Sword(self.world,target_pos,(0,-2.5))
 
 class Werewolf(Sprite):
@@ -335,6 +340,10 @@ class Sword(Sprite):
         self.pos += dt*self.vel
         self.vel += dt*GRAVITY
         super().tick(dt)
+        if self.pos[0]-world.camera[0] > world.background.get_width():
+            self.vel[0] *= -1
+        if self.pos[0]-world.camera[0] < 0:
+            self.vel[0] *= -1
         if self.pos[1] > 800:
             world.things.remove(self)
             world.actors.remove(self)
@@ -369,7 +378,7 @@ class SwordLauncher(Sprite):
         else:
             self.theta = -(self.launch_angle / (2*math.pi) * 360) + 130
     def launch(self):
-        if self.loading:
+        if self.loading or self.player.dead:
             return
         schwing.play()
         vel = np.array((math.cos(self.launch_angle),math.sin(self.launch_angle)))*SWORD_VELOCITY
