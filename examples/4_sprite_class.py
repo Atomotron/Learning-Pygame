@@ -10,7 +10,7 @@ screen = pygame.display.set_mode((1024,768))
 
 # Configuration
 BACKSTOP = -50
-PLAYER_SPEED = 1
+PLAYER_SPEED = 0.6
 WEREWOLF_SPEED = 0.4
 GRAVITY = np.array((0.0,0.01))
 SWORD_VELOCITY = 3
