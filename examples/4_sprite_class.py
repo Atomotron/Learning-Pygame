@@ -10,7 +10,7 @@ screen = pygame.display.set_mode((1024,768))
 
 # Configuration
 PLAYER_SPEED = 1
-WEREWOLF_SPEED = 0.2
+WEREWOLF_SPEED = 0.4
 GRAVITY = np.array((0.0,0.01))
 SWORD_VELOCITY = 3
 BACKGROUND_SPRITES = [
@@ -20,7 +20,11 @@ BACKGROUND_SPRITES = [
 # Load image and sound assets
 spritesheet = pygame.image.load("../img/sprites.png").convert_alpha()
 playersheet = pygame.image.load("../img/spriteanim_v2.png").convert_alpha()
-background = pygame.image.load("../img/PyBgrd2_Dunes.png").convert_alpha()
+backgrounds = [
+    pygame.image.load("../img/PyBgrd1_Plains.png").convert_alpha(),
+    pygame.image.load("../img/PyBgrd2_Dunes.png").convert_alpha(),
+    pygame.image.load("../img/PyBgrd3_Swamp.png").convert_alpha(),
+]
 schwing = pygame.mixer.Sound("../sounds/schwing.ogg")
 
 source_rects = {
@@ -69,12 +73,13 @@ player_frames = [
 class World(object):
     """The world contains all of the sprites, and keeps track of what rectangles
        need to be painted over by the background to erase old stuff."""
-    def __init__(self,background,camera=(0,0)):
+    def __init__(self,backgrounds,camera=(0,0)):
         self.player = None # A blessed, special entity.
         self.things = []
         self.actors = []
         self.reactors = []
-        self.background = background
+        self.backgrounds = backgrounds
+        self.background = random.choice(self.backgrounds)
         self.camera = np.array(camera,dtype=np.float_)
     def tick(self,dt):
         for thing in self.things:
@@ -85,7 +90,7 @@ class World(object):
                     actor.collide(reactor)
         if self.player:
             delta = ((self.player.pos[0] - self.camera[0]) / self.background.get_rect().width) - 0.5
-            speed = math.pow(delta,3)*10
+            speed = math.pow(delta,3)*30
             self.camera[0] += dt*speed # Rectangle integration method
     def draw(self,screen):
         # The position on the screen of the background repetition seam
@@ -100,16 +105,20 @@ class World(object):
         self.things = []
         self.actors = []
         self.reactors = []
+        self.enemy_count = 0
+        self.background = random.choice(self.backgrounds)
         self.camera = np.array((0,0),dtype=np.float_)
         for i in range(0,100):
             Sprite(
                 self,
                 spritesheet,
                 source_rects[random.choice(BACKGROUND_SPRITES)],
-                (random.uniform(0,10000),random.uniform(550,730)),
+                (random.uniform(-10000,10000),random.uniform(550,730)),
             )
         Player(world,(100,650))
-        Werewolf(world,(1000,650))
+        for i in range(0,10):
+            Werewolf(world,(random.uniform(1000,10000),650))
+            self.enemy_count += 1
         world.z_sort()
     def z_sort(self):
         """Order drawable things by their position. Run this after introducing new objects."""
@@ -256,8 +265,11 @@ class Player(Sprite):
                 self.mirrored = False
         super().tick(dt)
     def die(self):
+        if self.dead:
+            return # What is dead may never die
         self.dead = True
         self.anim_state |= Sprite.DISAPPEAR | Sprite.HURT
+        self.sword_launcher.die()
     def throw_sword_at(self,screen_pos):
         screen_pos = np.array(screen_pos,dtype=np.float_)
         target_pos = self.world.camera + screen_pos
@@ -326,21 +338,36 @@ class SwordLauncher(Sprite):
         )
         self.player = player
         self.launch_angle = 0
+        self.loading = False
     def tick(self,dt):
         target_pos = self.world.camera + np.array(pygame.mouse.get_pos())
         target_vector = target_pos - self.player.pos
         self.launch_angle = min(-math.pi/4,max(-3*math.pi/4,math.atan2(target_vector[1],target_vector[0])))
         dx = np.array((math.cos(self.launch_angle),math.sin(self.launch_angle))) * 48*3
         self.pos = self.player.pos + dx
-        self.theta = -(self.launch_angle / (2*math.pi) * 360) + 130
+        if self.loading:
+            self.scale += 0.001*dt
+            if self.scale > 1:
+                self.scale = 1
+                self.loading = False
+            else:
+                self.theta += dt*1.5
+        else:
+            self.theta = -(self.launch_angle / (2*math.pi) * 360) + 130
     def launch(self):
+        if self.loading:
+            return
         schwing.play()
         vel = np.array((math.cos(self.launch_angle),math.sin(self.launch_angle)))*SWORD_VELOCITY
         Sword(self.world,self.player.pos,vel,self.theta)
+        self.loading = True
+        self.scale = 0.1
+    def die(self):
+        self.world.things.remove(self)
 
 if __name__ == "__main__":
     clock = pygame.time.Clock() # A clock to keep track of time
-    world = World(background)
+    world = World(backgrounds)
     world.populate()
     keep_on_stepping = True
     while keep_on_stepping:
