@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import random,math
+import numpy as np
 import pygame
 from pygame import Rect
 from pygame.locals import *
@@ -10,6 +11,7 @@ screen = pygame.display.set_mode((1024,768))
 # Load image assets
 player_sheet = pygame.image.load("../img/spritecolor_v2.png").convert_alpha()
 spritesheet = pygame.image.load("../img/sprites.png").convert_alpha()
+playersheet = pygame.image.load("../img/spriteanim_v2.png").convert_alpha()
 background = pygame.image.load("../img/PyBgrd2_Dunes.png").convert_alpha()
 
 source_rects = {
@@ -50,42 +52,58 @@ source_rects = {
 class World(object):
     """The world contains all of the sprites, and keeps track of what rectangles
        need to be painted over by the background to erase old stuff."""
-    def __init__(self,background,screen_rect):
-        # Foreground drawing
+    def __init__(self,background,camera=(0,0)):
+        self.player = None # A blessed, special entity.
         self.things = []
-        # Background drawing
-        self.dirty_rects = [screen_rect] # We must draw the whole background on startup
+        self.actors = []
+        self.reactors = []
         self.background = background
-    def draw(self,screen):
-        for rect in self.dirty_rects:
-            screen.blit(self.background,(0,0),rect)
+        self.camera = np.array(camera)
+    def tick(self,dt):
         for thing in self.things:
-            thing.draw(screen)
+            thing.tick(dt)
+        for actor in self.actors:
+            for reactor in self.reactors:
+                if actor.rect.colliderect(reactor.rect):
+                    actor.collide(reactor)
+        if self.player:
+            delta = self.player.pos[0] - self.camera[0]
+            speed = np.pow(delta,5)
+            self.camera[0] += dt*speed # Rectangle integration method
+    def draw(self,screen):
+        # The position on the screen of the background repetition seam
+        background_rect = self.background.get_rect()
+        seam = (-int(self.camera[0])) % background_rect.width
+        screen.blit(self.background,(seam,0),Rect((0,0),(background_rect.width - seam,background_rect.height)))
+        screen.blit(self.background,(0,0),Rect((background_rect.width - seam,0),(seam,background_rect.height)))
+        for thing in self.things:
+            thing.draw(screen,self.camera)
 
 class Sprite(object):
     """A drawable thing that sits in the world."""
-    def __init__(self,world,spritesheet,source_rect,pos,theta=0):
-        self.dirty = True # True if this sprite has changed and must be updated
+    NORMAL = 0
+    HURT = 0b1
+    DISAPPEAR = 0b10
+    def __init__(self,world,spritesheet,source_rect,pos,theta=0,scale=1,anim_state=0):
         self.sprite_dirty = True # True if the cached sprite does not match what the sprite should be
         self.world = world
         self.spritesheet = spritesheet
         self.source_rect = source_rect
         self.rect = None # To be set by position setter
         self.theta = theta
-        self.pos = pos
+        self.scale = scale
+        self.anim_state = anim_state
+        self.anim_time = 0
+        self.pos = np.array(pos)
         world.things.append(self)
-    def flag_dirty(self):
-        if not self.dirty:
-            self.world.dirty_rects.append(self.rect)
-        self.dirty = True
 
     @property
     def sprite(self):
         if self.sprite_dirty:
             self._sprite = pygame.transform.rotozoom(
                 spritesheet.subsurface(self.source_rect),
-                self.theta,
-                1,
+                self._theta,
+                self._scale,
             )
             self.sprite_dirty = False
         return self._sprite
@@ -94,15 +112,20 @@ class Sprite(object):
         return self._theta
     @theta.setter
     def theta(self,t):
-        self.flag_dirty()
         self.sprite_dirty = True
         self._theta = t
+    @property
+    def scale(self):
+        return self._scale
+    @scale.setter
+    def scale(self,s):
+        self.sprite_dirty = True
+        self._scale = s
     @property
     def source_rect(self):
         return self._source_rect
     @source_rect.setter
     def source_rect(self,r):
-        self.flag_dirty()
         self.sprite_dirty = True
         self._source_rect = r
     @property
@@ -110,39 +133,58 @@ class Sprite(object):
         return self._pos
     @pos.setter
     def pos(self,x):
-        self.flag_dirty()
         self._pos = x
-        self.rect = self.sprite.get_rect().move(int(x[0]),int(x[1]))
+        self.rect = self.sprite.get_rect().move(int(x[0]+self.source_rect.width/2),int(x[1]+self.source_rect.height/2))
 
-    def draw(self,screen):
+    def draw(self,screen,camera):
         # We draw the sprite whether we're flagged as dirty or not,
         # because we don't know whether or not another drawing operation
         # messed up our image on the screen by painting over it.
-        screen.blit(self.sprite,self.rect.topleft)
+        world_pos = self.rect.topleft
+        screen.blit(self.sprite,(world_pos[0]-int(camera[0]),world_pos[1]-int(camera[1])))
+    def tick(self,dt): # Advance in time
+        if self.anim_state & Sprite.HURT:
+            half_height = self.spritesheet.height//2
+            if self.anim_time % 10 < 3 and self.source_rect.top < half_height:
+                self.source_rect = self.source_rect.move(0,half_height)
+            elif self.anim_time % 10 >= 3 and self.source_rect.top >= half_height:
+                self.source_rect = self.source_rect.move(0,-half_height)
+        if self.anim_state & Sprite.DISAPPEAR:
+            self.theta += dt/2
+            self.scale = self.scale - 0.003*self.scale*dt
+        if self.anim_state != 0:
+            self.anim_time += dt
+        else:
+            self.anim_time = 0    
 
 if __name__ == "__main__":
     clock = pygame.time.Clock() # A clock to keep track of time
-    world = World(background,screen.get_rect())
+    world = World(background)
     thing = Sprite(
             world,
             spritesheet,
             source_rects['man'],
             (0,0),
+            0,1,
+            Sprite.HURT | Sprite.DISAPPEAR
     )
-    while True:
-        clock.tick(60) # If we go faster than 60fps, stop and wait.
+    keep_on_stepping = True
+    while keep_on_stepping:
+        dt = clock.tick(30) # If we go faster than 60fps, stop and wait.
         for event in pygame.event.get(): # Get everything that's happening
             if event.type == QUIT: # If someone presses the X button
-                pygame.quit() # Shuts down the window
-                exit()
+                keep_on_stepping = False
             elif event.type == KEYDOWN and event.key == K_ESCAPE:
-                pygame.quit()
-                exit()
+                keep_on_stepping = False
         if random.randrange(60) == 0:
             thing.theta = random.uniform(0,360)
         if random.randrange(60) == 0:
             thing.source_rect = source_rects[random.choice(list(source_rects))]
+            thing.scale = 1
         if random.randrange(60) == 0:
-            thing.pos = (random.randrange(900),random.randrange(700))
+            thing.pos = (random.randrange(900)+world.camera[0],random.randrange(700))
+            thing.scale = 1
+        world.tick(dt)
         world.draw(screen)
         pygame.display.flip()
+    pygame.quit()
