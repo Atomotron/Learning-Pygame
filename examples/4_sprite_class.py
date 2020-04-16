@@ -20,6 +20,7 @@ BACKGROUND_SPRITES = [
 
 # Load image and sound assets
 spritesheet = pygame.image.load("../img/sprites.png").convert_alpha()
+spritegrave = pygame.image.load("../img/sprite_grave.png").convert_alpha()
 playersheet = pygame.image.load("../img/spriteanim_v2.png").convert_alpha()
 messages = pygame.image.load("../img/messages.png").convert_alpha()
 backgrounds = [
@@ -288,6 +289,13 @@ class Player(Sprite):
         self.dead = True
         self.anim_state |= Sprite.DISAPPEAR | Sprite.HURT
         self.sword_launcher.die()
+        Sprite(
+            self.world,
+            spritegrave,
+            spritegrave.get_rect(),
+            self.pos
+        )
+        self.world.z_sort()
     def throw_sword_at(self,screen_pos):
         screen_pos = np.array(screen_pos,dtype=np.float_)
         target_pos = self.world.camera + screen_pos
