@@ -21,7 +21,7 @@ BACKGROUND_SPRITES = [
 spritesheet = pygame.image.load("../img/sprites.png").convert_alpha()
 playersheet = pygame.image.load("../img/spriteanim_v2.png").convert_alpha()
 background = pygame.image.load("../img/PyBgrd2_Dunes.png").convert_alpha()
-
+schwing = pygame.mixer.Sound("../sounds/schwing.ogg")
 
 source_rects = {
     'man'   : Rect((0,0),(48*2,48*3)),
@@ -334,6 +334,7 @@ class SwordLauncher(Sprite):
         self.pos = self.player.pos + dx
         self.theta = -(self.launch_angle / (2*math.pi) * 360) + 130
     def launch(self):
+        schwing.play()
         vel = np.array((math.cos(self.launch_angle),math.sin(self.launch_angle)))*SWORD_VELOCITY
         Sword(self.world,self.player.pos,vel,self.theta)
 
