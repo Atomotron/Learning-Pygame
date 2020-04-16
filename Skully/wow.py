@@ -50,44 +50,15 @@ cometSprite = gameSprite.subsurface(pygame.Rect((48*4,48*5),(48*5,48*2)))
 
 angle =0
 
-fireplaceImage2 = pygame.transform.rotozoom(
-    fireplaceSprite,
-    0,
-    1.4
-    )
-
-guy = pygame.transform.rotozoom(
-    guyStillSprite,
-    0,
-    1.8
-    )
-
-castle = pygame.transform.rotozoom(
-    castleRect,
-    3,
-    1.6
-    )
-
-tree = pygame.transform.rotozoom(
-    treeSprite,
-    0,
-    2
-    )
-
-shrub = pygame.transform.rotozoom(
-    shrubSprite,
-    0,
-    1.4
-    )
-
-comet = pygame.transform.rotozoom(
-    cometSprite,
-    angle,
-    0.65
-    )
+fireplaceImage2 = pygame.transform.rotozoom(fireplaceSprite,0,1.4)
+guy = pygame.transform.rotozoom(guyStillSprite,0,1.8)
+castle = pygame.transform.rotozoom(castleRect,3,1.6)
+tree = pygame.transform.rotozoom(treeSprite,0,2)
+shrub = pygame.transform.rotozoom(shrubSprite,0,1.4)
+comet = pygame.transform.rotozoom(cometSprite,angle,0.65)
 
 
-def erase(rect): # Draw the background over an area to "erase" what's there.
+def erase(rect):
     screen.blit(background,rect.topleft,rect)
     screen.blit(castle,((screenWidth/2)-600,230))
     screen.blit(shrub,((screenWidth/2)-400,450))
@@ -97,12 +68,10 @@ def erase(rect): # Draw the background over an area to "erase" what's there.
 
 
     #if random.randrange(0,2,1) :
-        
      #   randX1= random.randrange(100,(screenWidth/2)-100)
       #  randY1= random.randrange((screenHeight/2)+100,screenHeight)
        # randX2= random.randrange((screenWidth/2)+200,screenWidth-80)
         #randY2= random.randrange((screenHeight/2),screenHeight-382)
-        
        # screen.blit(shrub,(randX1,randY1))
         #screen.blit(tree,(randX2,randY2))
         #done =1
@@ -111,7 +80,6 @@ def erase(rect): # Draw the background over an area to "erase" what's there.
       #  randY1= random.randrange((screenHeight/2)+100,screenHeight)
        # randX2= random.randrange((screenWidth/2)+200,screenWidth-80)
         #randY2= random.randrange((screenHeight/2),screenHeight-382)
-        
         #screen.blit(shrub,(randX2,randY2))
         #screen.blit(tree,(randX1,randY1))
         #done = 1
@@ -120,9 +88,8 @@ erase(screen.get_rect())
 
 
 
-clock = pygame.time.Clock() # A clock to keep track of time
-frame = 0 # Frame counter
-pos = (0,0) # position for animation
+clock = pygame.time.Clock() 
+frame = 0
 count = 0
 
 devil = Devil(gameSprite.subsurface(pygame.Rect((48*18,48*3),(48*2,48*3))),[50,50])
