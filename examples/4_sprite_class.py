@@ -9,7 +9,6 @@ pygame.init()
 screen = pygame.display.set_mode((1024,768))
 
 # Load image assets
-player_sheet = pygame.image.load("../img/spritecolor_v2.png").convert_alpha()
 spritesheet = pygame.image.load("../img/sprites.png").convert_alpha()
 playersheet = pygame.image.load("../img/spriteanim_v2.png").convert_alpha()
 background = pygame.image.load("../img/PyBgrd2_Dunes.png").convert_alpha()
@@ -49,6 +48,14 @@ source_rects = {
     'grass'  :Rect((48*18,48*11),(48*2,48*1)),
 }
 
+player_frames = [
+    Rect((0,0),(48*2,48*3)),
+    Rect((48*2,0),(48*2,48*3)),
+    Rect((48*4,0),(48*2,48*3)),
+    Rect((48*6,0),(48*2,48*3)),
+    Rect((48*10,0),(48*2,48*3)),
+]
+
 class World(object):
     """The world contains all of the sprites, and keeps track of what rectangles
        need to be painted over by the background to erase old stuff."""
@@ -67,8 +74,8 @@ class World(object):
                 if actor.rect.colliderect(reactor.rect):
                     actor.collide(reactor)
         if self.player:
-            delta = self.player.pos[0] - self.camera[0]
-            speed = np.pow(delta,5)
+            delta = (self.player.pos[0] - self.camera[0]) / self.background.get_rect().width
+            speed = math.pow(delta,5)
             self.camera[0] += dt*speed # Rectangle integration method
     def draw(self,screen):
         # The position on the screen of the background repetition seam
@@ -84,28 +91,46 @@ class Sprite(object):
     NORMAL = 0
     HURT = 0b1
     DISAPPEAR = 0b10
-    def __init__(self,world,spritesheet,source_rect,pos,theta=0,scale=1,anim_state=0):
+    WIGGLE = 0b100
+    def __init__(self,world,_spritesheet,source_rect,pos,theta=0,scale=1,anim_state=0):
         self.sprite_dirty = True # True if the cached sprite does not match what the sprite should be
         self.world = world
-        self.spritesheet = spritesheet
+        print(_spritesheet)
+        self.spritesheet = _spritesheet
         self.source_rect = source_rect
-        self.rect = None # To be set by position setter
         self.theta = theta
         self.scale = scale
         self.anim_state = anim_state
         self.anim_time = 0
         self.pos = np.array(pos)
         world.things.append(self)
-
+    def clean_sprite(self):
+        self._sprite = pygame.transform.rotozoom(
+            self.spritesheet.subsurface(self.source_rect),
+            self._theta,
+            self._scale,
+        )
+        self.sprite_dirty = False
+        self.clean_rect()
+    def clean_rect(self):
+        if self.sprite_dirty:
+            self.clean_sprite()
+        sprite_rect = self._sprite.get_rect()
+        self._rect = Rect(
+            int(self._pos[0]-sprite_rect.width/2),
+            int(self._pos[1]-sprite_rect.height/2),
+            sprite_rect.width,
+            sprite_rect.height,
+        )
+    @property
+    def rect(self):
+        if self.sprite_dirty:
+            self.clean_sprite()
+        return self._rect
     @property
     def sprite(self):
         if self.sprite_dirty:
-            self._sprite = pygame.transform.rotozoom(
-                spritesheet.subsurface(self.source_rect),
-                self._theta,
-                self._scale,
-            )
-            self.sprite_dirty = False
+            self.clean_sprite()
         return self._sprite
     @property
     def theta(self):
@@ -134,7 +159,7 @@ class Sprite(object):
     @pos.setter
     def pos(self,x):
         self._pos = x
-        self.rect = self.sprite.get_rect().move(int(x[0]+self.source_rect.width/2),int(x[1]+self.source_rect.height/2))
+        self.clean_rect()
 
     def draw(self,screen,camera):
         # We draw the sprite whether we're flagged as dirty or not,
@@ -142,6 +167,7 @@ class Sprite(object):
         # messed up our image on the screen by painting over it.
         world_pos = self.rect.topleft
         screen.blit(self.sprite,(world_pos[0]-int(camera[0]),world_pos[1]-int(camera[1])))
+        sprite_rect = self.sprite.get_rect()
     def tick(self,dt): # Advance in time
         if self.anim_state & Sprite.HURT:
             half_height = self.spritesheet.height//2
@@ -152,10 +178,31 @@ class Sprite(object):
         if self.anim_state & Sprite.DISAPPEAR:
             self.theta += dt/2
             self.scale = self.scale - 0.003*self.scale*dt
-        if self.anim_state != 0:
+        if self.anim_state & Sprite.WIGGLE:
+            self.theta += 0.05*math.cos(self.anim_time/120)*dt
+        if self.anim_state:
             self.anim_time += dt
         else:
-            self.anim_time = 0    
+            self.anim_time = 0
+
+class Player(Sprite):
+    def __init__(self,world,pos):
+        self.frame = 1
+        super().__init__(
+            world,
+            playersheet,
+            player_frames[self.frame],
+            pos
+        )
+        world.player = self
+    def tick(self,dt):
+        pressed = pygame.key.get_pressed()
+        if pressed[K_w] or pressed[K_a] or pressed[K_d] or pressed[K_s]:
+            self.anim_state |= Sprite.WIGGLE
+        else:
+            self.anim_state &= ~Sprite.WIGGLE
+            self.theta = self.theta - 0.01*self.theta*dt
+        super().tick(dt)
 
 if __name__ == "__main__":
     clock = pygame.time.Clock() # A clock to keep track of time
@@ -166,8 +213,9 @@ if __name__ == "__main__":
             source_rects['man'],
             (0,0),
             0,1,
-            Sprite.HURT | Sprite.DISAPPEAR
+            Sprite.WIGGLE
     )
+    player = Player(world,(100,650))
     keep_on_stepping = True
     while keep_on_stepping:
         dt = clock.tick(30) # If we go faster than 60fps, stop and wait.
