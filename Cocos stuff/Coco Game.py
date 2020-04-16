@@ -115,11 +115,11 @@ if __name__ == "__main__":
         pressed = pygame.key.get_pressed()
         if pressed[pygame.K_w]:
             player.move(screen,0,-5)
-        if pressed[pygame.K_s]:
+        elif pressed[pygame.K_s]:
             player.move(screen,0,5)
-        if pressed[pygame.K_a]:
-            player.move(screen,-5,0)
         if pressed[pygame.K_d]:
             player.move(screen,5,0)
+        elif pressed[pygame.K_a]:
+            player.move(screen,-5,0)
         pygame.display.flip()
 
