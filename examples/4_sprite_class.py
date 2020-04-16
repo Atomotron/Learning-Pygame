@@ -20,12 +20,15 @@ BACKGROUND_SPRITES = [
 # Load image and sound assets
 spritesheet = pygame.image.load("../img/sprites.png").convert_alpha()
 playersheet = pygame.image.load("../img/spriteanim_v2.png").convert_alpha()
+messages = pygame.image.load("../img/messages.png").convert_alpha()
 backgrounds = [
     pygame.image.load("../img/PyBgrd1_Plains.png").convert_alpha(),
     pygame.image.load("../img/PyBgrd2_Dunes.png").convert_alpha(),
     pygame.image.load("../img/PyBgrd3_Swamp.png").convert_alpha(),
 ]
 schwing = pygame.mixer.Sound("../sounds/schwing.ogg")
+werewolf = pygame.mixer.Sound("../sounds/elitewart.ogg")
+win = pygame.mixer.Sound("../sounds/goodjob.ogg")
 
 source_rects = {
     'man'   : Rect((0,0),(48*2,48*3)),
@@ -61,7 +64,10 @@ source_rects = {
     'widegrass'  :Rect((48*13,48*11),(48*5,48*1)),
     'grass'  :Rect((48*18,48*11),(48*2,48*1)),
 }
-
+message_rects = {
+    'win':Rect(0,0,600,400),
+    'death':Rect(0,400,600,400),
+}
 player_frames = [
     Rect((0,0),(48*2,48*3)),
     Rect((48*2,0),(48*2,48*3)),
@@ -89,8 +95,8 @@ class World(object):
                 if actor.rect.colliderect(reactor.rect):
                     actor.collide(reactor)
         if self.player:
-            delta = ((self.player.pos[0] - self.camera[0]) / self.background.get_rect().width) - 0.5
-            speed = math.pow(delta,3)*30
+            delta = ((self.player.pos[0] - self.camera[0]) / self.background.get_rect().width) - 0.1
+            speed = (math.pow(delta,3)+math.pow(delta-0.4,5))*30
             self.camera[0] += dt*speed # Rectangle integration method
     def draw(self,screen):
         # The position on the screen of the background repetition seam
@@ -100,12 +106,13 @@ class World(object):
         screen.blit(self.background,(0,0),Rect((background_rect.width - seam,0),(seam,background_rect.height)))
         for thing in self.things:
             thing.draw(screen,self.camera)
-    def populate(self):
+    def populate(self,difficulty=1):
         """Introduce a bunch of objects."""
         self.things = []
         self.actors = []
         self.reactors = []
         self.enemy_count = 0
+        self.difficulty = difficulty
         self.background = random.choice(self.backgrounds)
         self.camera = np.array((0,0),dtype=np.float_)
         for i in range(0,100):
@@ -116,8 +123,8 @@ class World(object):
                 (random.uniform(-10000,10000),random.uniform(550,730)),
             )
         Player(world,(100,650))
-        for i in range(0,10):
-            Werewolf(world,(random.uniform(1000,10000),650))
+        for i in range(10,difficulty+10):
+            Werewolf(world,(random.uniform(i*100-100,i*100+100),650))
             self.enemy_count += 1
         world.z_sort()
     def z_sort(self):
@@ -263,6 +270,10 @@ class Player(Sprite):
             if pressed[K_LEFT] or pressed[K_a]:
                 self.pos[0] -= dt*PLAYER_SPEED
                 self.mirrored = False
+        else:
+            if self.scale < 0.01:
+                self.world.things.remove(self)
+                GameMessage(self.world,'death')
         super().tick(dt)
     def die(self):
         if self.dead:
@@ -301,6 +312,9 @@ class Werewolf(Sprite):
         self.anim_state |= Sprite.DISAPPEAR | Sprite.HURT
         world.actors.remove(self)
         world.reactors.remove(self)
+        self.world.enemy_count -= 1
+        if self.world.enemy_count <= 0:
+            GameMessage(self.world,'win')
     def collide(self,reactor):
         if reactor.NAME == "player":
             reactor.die()
@@ -364,6 +378,29 @@ class SwordLauncher(Sprite):
         self.scale = 0.1
     def die(self):
         self.world.things.remove(self)
+
+class GameMessage(Sprite):
+    def __init__(self,world,message):
+        super().__init__(
+            world,
+            messages,
+            message_rects[message],
+            world.camera + np.array((world.background.get_rect().width/2,world.background.get_rect().height/2))
+        )
+        self.message = message
+        self.anim_state |= Sprite.WIGGLE
+        self.advance_timer = 0
+        if message == 'win':
+            win.play()
+        else:
+            werewolf.play()
+    def tick(self,dt):
+        self.advance_timer += dt
+        if self.advance_timer > (3000 if self.message=='win' else 6000):
+            self.world.things.remove(self)
+            self.world.populate(self.world.difficulty*2 if self.message=='win' else 1)
+        super().tick(dt)
+        
 
 if __name__ == "__main__":
     clock = pygame.time.Clock() # A clock to keep track of time
