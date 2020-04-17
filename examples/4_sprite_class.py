@@ -7,8 +7,9 @@ from pygame.locals import *
 
 pygame.init()
 screen = pygame.display.set_mode((1024,768))
-
 # Configuration
+WereWolvesKilled = 0
+LevelsCleared = 0
 BACKSTOP = -50
 PLAYER_SPEED = 0.6
 WEREWOLF_SPEED = 0.4
@@ -308,6 +309,7 @@ class Player(Sprite):
         Sword(self.world,target_pos,(0,-2.5))
 
 class Werewolf(Sprite):
+    global WereWolvesKilled
     NAME = "werewolf"
     def __init__(self,world,pos):
         super().__init__(
@@ -328,6 +330,10 @@ class Werewolf(Sprite):
             world.things.remove(self)
         super().tick(dt)
     def die(self):
+        global WereWolvesKilled
+        global LevelsCleared
+        WereWolvesKilled += 1
+        print(WereWolvesKilled)
         self.dead = True
         self.anim_state |= Sprite.DISAPPEAR | Sprite.HURT
         world.actors.remove(self)
@@ -335,6 +341,9 @@ class Werewolf(Sprite):
         self.world.enemy_count -= 1
         if self.world.enemy_count <= 0:
             GameMessage(self.world,'win')
+            LevelsCleared += 1
+            print(LevelsCleared)
+            CocosMessage.drawstuff()
     def collide(self,reactor):
         if reactor.NAME == "player":
             reactor.die()
@@ -425,12 +434,21 @@ class GameMessage(Sprite):
             self.world.populate(self.world.difficulty*2 if self.message=='win' else 1)
         super().tick(dt)
         
+class CocosMessage(object):
+    def __init__(self):
+        global LevelsCleared
+        global WereWolvesKilled
+        self.level = LevelsCleared
+        self.WerwewolfKilled = WereWolvesKilled
 
+    def drawstuff():
+        pygame.display.set_caption('Werewolves killed:' + str(WereWolvesKilled) + "Levels Cleared:" + str(LevelsCleared))
 if __name__ == "__main__":
     clock = pygame.time.Clock() # A clock to keep track of time
     world = World(backgrounds)
     world.populate()
     keep_on_stepping = True
+    pygame.display.set_caption('Werewolves killed:' + str(WereWolvesKilled) + "Levels Cleared:" + str(LevelsCleared))
     while keep_on_stepping:
         dt = clock.tick(30) # If we go faster than 60fps, stop and wait.
         for event in pygame.event.get(): # Get everything that's happening
