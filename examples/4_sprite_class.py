@@ -333,7 +333,6 @@ class Werewolf(Sprite):
         global WereWolvesKilled
         global LevelsCleared
         WereWolvesKilled += 1
-        print(WereWolvesKilled)
         self.dead = True
         self.anim_state |= Sprite.DISAPPEAR | Sprite.HURT
         world.actors.remove(self)
@@ -342,7 +341,6 @@ class Werewolf(Sprite):
         if self.world.enemy_count <= 0:
             GameMessage(self.world,'win')
             LevelsCleared += 1
-            print(LevelsCleared)
             CocosMessage.drawstuff()
     def collide(self,reactor):
         if reactor.NAME == "player":
