@@ -21,7 +21,7 @@ BACKGROUND_SPRITES = [
 # Load image and sound assets
 spritesheet = pygame.image.load("../img/sprites.png").convert_alpha()
 spritegrave = pygame.image.load("../img/sprite_grave.png").convert_alpha()
-playersheet = pygame.image.load("../img/spriteanim_v2.png").convert_alpha()
+playersheet = pygame.image.load("../img/sprite_run.png").convert_alpha()
 messages = pygame.image.load("../img/messages.png").convert_alpha()
 backgrounds = [
     pygame.image.load("../img/PyBgrd1_Plains.png").convert_alpha(),
@@ -75,7 +75,7 @@ player_frames = [
     Rect((48*2,0),(48*2,48*3)),
     Rect((48*4,0),(48*2,48*3)),
     Rect((48*6,0),(48*2,48*3)),
-    Rect((48*10,0),(48*2,48*3)),
+    Rect((48*8,0),(48*2,48*3)),
 ]
 
 class World(object):
@@ -268,7 +268,7 @@ class Player(Sprite):
         if not self.dead:
             pressed = pygame.key.get_pressed()
             if pressed[K_RIGHT] or pressed[K_d] or pressed[K_a] or pressed[K_LEFT]:
-                self.anim_state |= Sprite.WIGGLE
+                self.anim_state |= Sprite.WIGGLE                
             else:
                 self.anim_state &= ~Sprite.WIGGLE
                 self.theta = self.theta - 0.01*self.theta*dt
@@ -282,6 +282,12 @@ class Player(Sprite):
             if self.scale < 0.01:
                 self.world.things.remove(self)
                 GameMessage(self.world,'death')
+
+        loop = [1,2,3,4,3,2]
+        next_frame = loop[int(math.floor(self.anim_time/60)) % len(loop)] if self.anim_time > 0 else 0
+        if next_frame != self.frame:
+            self.frame = next_frame
+            self.source_rect = player_frames[self.frame]
         super().tick(dt)
     def die(self):
         if self.dead:
