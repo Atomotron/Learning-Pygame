@@ -296,6 +296,12 @@ class Player(Sprite):
         self.dead = True
         self.anim_state |= Sprite.DISAPPEAR | Sprite.HURT
         self.sword_launcher.die()
+        global WereWolvesKilled
+        WereWolvesKilled = 0
+        global LevelsCleared
+        LevelsCleared = 0
+        pygame.display.set_caption(
+            'Werewolves killed:' + str(WereWolvesKilled) + "Levels Cleared:" + str(LevelsCleared))
         Sprite(
             self.world,
             spritegrave,
