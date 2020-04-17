@@ -8,9 +8,9 @@ pygame.init()
 screen = pygame.display.set_mode((1024,768))
 
 # Load image assets
-player_sheet = pygame.image.load("../Learning-Pygame/img/spritecolor_v2.png").convert_alpha()
-spritesheet = pygame.image.load("../Learning-Pygame/img/sprites.png").convert_alpha()
-background = pygame.image.load("../Learning-Pygame/img/PyBgrd3_Swamp.png").convert_alpha()
+player_sheet = pygame.image.load("../img/spritecolor_v2.png").convert_alpha()
+spritesheet = pygame.image.load("../img/sprites.png").convert_alpha()
+background = pygame.image.load("../img/PyBgrd3_Swamp.png").convert_alpha()
 
 source_rects = {
     'man'   : Rect((0,0),(48*2,48*3)),
@@ -144,7 +144,7 @@ if __name__ == "__main__":
             elif event.type == KEYDOWN and event.key == K_ESCAPE:
                 pygame.quit()
                 exit()
-    
+
         pressed = pygame.key.get_pressed()
         if pressed[pygame.K_LEFT]:
             #print('left')
@@ -169,6 +169,6 @@ if __name__ == "__main__":
                 cur_pos_x += 2
                 #print(cur_pos_x)
                 thing.pos = (cur_pos_x,cur_pos_y)
-        
+
         world.draw(screen)
         pygame.display.flip()
